@@ -1,8 +1,22 @@
-const Sequelize = require('sequelize');
+const Sequelize = require("sequelize");
+const { Transaction } = require("sequelize");
 
 const sequelize = new Sequelize({
-  dialect: 'sqlite',
-  storage: './database.sqlite3'
+  dialect: "sqlite",
+  storage: "./database.sqlite3",
+  isolationLevel: Transaction.ISOLATION_LEVELS.READ_COMMITTED,
+  retry: {
+    match: [
+      Sequelize.ConnectionError,
+      Sequelize.ConnectionTimedOutError,
+      Sequelize.TimeoutError,
+      /Deadlock/i,
+      "SQLITE_BUSY",
+    ],
+    max: 3,
+    backoffBase: 100,
+    backoffExponent: 1.2,
+  },
 });
 
 class Profile extends Sequelize.Model {}
@@ -10,26 +24,26 @@ Profile.init(
   {
     firstName: {
       type: Sequelize.STRING,
-      allowNull: false
+      allowNull: false,
     },
     lastName: {
       type: Sequelize.STRING,
-      allowNull: false
+      allowNull: false,
     },
     profession: {
       type: Sequelize.STRING,
-      allowNull: false
+      allowNull: false,
     },
-    balance:{
-      type:Sequelize.DECIMAL(12,2)
+    balance: {
+      type: Sequelize.DECIMAL(12, 2),
     },
     type: {
-      type: Sequelize.ENUM('client', 'contractor')
-    }
+      type: Sequelize.ENUM("client", "contractor", "admin"),
+    },
   },
   {
     sequelize,
-    modelName: 'Profile'
+    modelName: "Profile",
   }
 );
 
@@ -38,15 +52,15 @@ Contract.init(
   {
     terms: {
       type: Sequelize.TEXT,
-      allowNull: false
+      allowNull: false,
     },
-    status:{
-      type: Sequelize.ENUM('new','in_progress','terminated')
-    }
+    status: {
+      type: Sequelize.ENUM("new", "in_progress", "terminated"),
+    },
   },
   {
     sequelize,
-    modelName: 'Contract'
+    modelName: "Contract",
   }
 );
 
@@ -55,36 +69,36 @@ Job.init(
   {
     description: {
       type: Sequelize.TEXT,
-      allowNull: false
+      allowNull: false,
     },
-    price:{
-      type: Sequelize.DECIMAL(12,2),
-      allowNull: false
+    price: {
+      type: Sequelize.DECIMAL(12, 2),
+      allowNull: false,
     },
     paid: {
       type: Sequelize.BOOLEAN,
-      default:false
+      defaultValue: false,
     },
-    paymentDate:{
-      type: Sequelize.DATE
-    }
+    paymentDate: {
+      type: Sequelize.DATE,
+    },
   },
   {
     sequelize,
-    modelName: 'Job'
+    modelName: "Job",
   }
 );
 
-Profile.hasMany(Contract, {as :'Contractor',foreignKey:'ContractorId'})
-Contract.belongsTo(Profile, {as: 'Contractor'})
-Profile.hasMany(Contract, {as : 'Client', foreignKey:'ClientId'})
-Contract.belongsTo(Profile, {as: 'Client'})
-Contract.hasMany(Job)
-Job.belongsTo(Contract)
+Profile.hasMany(Contract, { as: "Contractor", foreignKey: "ContractorId" });
+Contract.belongsTo(Profile, { as: "Contractor" });
+Profile.hasMany(Contract, { as: "Client", foreignKey: "ClientId" });
+Contract.belongsTo(Profile, { as: "Client" });
+Contract.hasMany(Job);
+Job.belongsTo(Contract);
 
 module.exports = {
   sequelize,
   Profile,
   Contract,
-  Job
+  Job,
 };
